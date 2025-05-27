@@ -1,4 +1,3 @@
-
 document.addEventListener('DOMContentLoaded', () => {
   const promptForm = document.getElementById('prompt-form');
   const promptInput = document.getElementById('prompt-input');
@@ -58,7 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const { operationLocation } = await response.json();
 
       const poll = async () => {
-        const result = await fetch(operationLocation);
+        const result = await fetch(`/image-status?url=${encodeURIComponent(operationLocation)}`);
         const data = await result.json();
 
         if (data.status === 'succeeded') {
@@ -120,13 +119,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
- function updateSampleImage(mode) {
-  sampleImages.innerHTML = `
-    <img src="${images[mode]}" alt="" 
-         style="max-width:100%; border-radius:8px; display:block;" 
-         onerror="this.style.display='none';" />
-  `;
-}
+  function updateSampleImage(mode) {
+    sampleImages.innerHTML = `
+      <img src="${images[mode]}" alt="" 
+           style="max-width:100%; border-radius:8px; display:block;" 
+           onerror="this.style.display='none';" />
+    `;
+  }
+
+  function updateMoodEmoji(mode) {
+    moodEmojis.innerHTML = emojis[mode];
+  }
 
   function displayResponse(response) {
     if (response.response.length > 300) {
