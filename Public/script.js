@@ -120,13 +120,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function updateSampleImage(mode) {
-    sampleImages.innerHTML = `<img src="${images[mode]}" alt="${mode}">`;
-  }
-
-  function updateMoodEmoji(mode) {
-    moodEmojis.innerHTML = emojis[mode];
-  }
+ function updateSampleImage(mode) {
+  sampleImages.innerHTML = `
+    <img src="${images[mode]}" alt="" 
+         style="max-width:100%; border-radius:8px; display:block;" 
+         onerror="this.style.display='none';" />
+  `;
+}
 
   function displayResponse(response) {
     if (response.response.length > 300) {
