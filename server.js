@@ -62,6 +62,21 @@ async function generateImage(prompt) {
     return response.headers['operation-location'];
 }
 
+// Polling endpoint for image generation status
+app.get('/image-status', async (req, res) => {
+    const { url } = req.query;
+    try {
+        const headers = {
+            'api-key': process.env.DALLE_OPENAI_API_KEY
+        };
+        const response = await axios.get(url, { headers });
+        res.json(response.data);
+    } catch (error) {
+        console.error('Error polling image status:', error.message);
+        res.status(500).json({ error: 'Failed to poll image status' });
+    }
+});
+
 // GPT prompt suggestions
 app.post('/api/suggestions', async (req, res) => {
     const { prompt } = req.body;
@@ -91,7 +106,7 @@ app.post('/api/suggestions', async (req, res) => {
 
         const suggestions = suggestionsText
             .split('\n')
-            .map(s => s.replace(/^[0-9\\-\\*\\.\\s]+/, '').trim())
+            .map(s => s.replace(/^[0-9\-\*\.\s]+/, '').trim())
             .filter(s => s.length > 0);
 
         res.json({ suggestions });
@@ -136,6 +151,7 @@ app.post('/generate-image', async (req, res) => {
     }
 });
 
+// Start server
 app.listen(port, () => {
     console.log(`Server running on port ${port}`);
 });
