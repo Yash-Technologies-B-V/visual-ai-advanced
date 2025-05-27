@@ -88,6 +88,36 @@ form button:hover {
   margin-top: 5px;
 }
 
+/* Prompt suggestions */
+#prompt-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+.suggestion-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.suggestion {
+  background-color: #e0e0e0;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  font-size: 0.95em;
+  margin: 2px 0;
+}
+
+.suggestion:hover {
+  background-color: #d0d0d0;
+}
+
 /* Response output */
 #response-output {
   margin-top: 20px;
@@ -95,16 +125,16 @@ form button:hover {
   background-color: #e9ecef;
   border-radius: 6px;
   text-align: left;
+  word-wrap: break-word;
 }
 
-/* Sample image and emoji */
-#sample-image {
-  margin-top: 15px;
-  max-width: 100%;
-  border-radius: 8px;
-}
-
-#mood-emoji {
-  font-size: 2em;
+/* Read more toggle */
+.read-more {
+  color: #007BFF;
+  cursor: pointer;
+  display: inline-block;
   margin-top: 10px;
+  font-size: 0.95em;
 }
+
+/* Thinking indicator
