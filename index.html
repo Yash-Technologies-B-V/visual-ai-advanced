@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Visual AI Web App v3</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background-color: #f4f4f4;
+    }
+    header {
+      text-align: center;
+      margin: 30px 0 10px;
+    }
+    header img {
+      max-width: 120px;
+      height: auto;
+      margin-bottom: 10px;
+    }
+    header h1 {
+      font-size: 2em;
+      margin: 0;
+    }
+    header p {
+      font-size: 1.1em;
+      color: #666;
+    }
+    main {
+      width: 100%;
+      max-width: 600px;
+      padding: 20px;
+      background-color: #fff;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      border-radius: 8px;
+      margin-bottom: 40px;
+    }
+    form {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+    form input[type="text"] {
+      width: 100%;
+      padding: 12px;
+      font-size: 1.1em;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+    form button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      background-color: #007BFF;
+      color: #fff;
+      font-size: 1em;
+      cursor: pointer;
+    }
+    form button:hover {
+      background-color: #0056b3;
+    }
+    #slider-container {
+      margin-top: 20px;
+      text-align: center;
+    }
+    #mode-slider {
+      width: 100%;
+      max-width: 500px;
+      margin: 10px 0;
+    }
+    #mode-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.9em;
+      color: #666;
+      max-width: 500px;
+      margin: 0 auto;
+    }
+    #prompt-suggestions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 20px;
+      justify-content: center;
+    }
+    #prompt-suggestions button {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      background-color: #e0e0e0;
+      cursor: pointer;
+    }
+    #prompt-suggestions button:hover {
+      background-color: #d0d0d0;
+    }
+    #sample-images {
+      margin-top: 20px;
+      text-align: center;
+    }
+    #sample-images img {
+      max-width: 100%;
+      border-radius: 8px;
+    }
+    #mood-emojis {
+      margin-top: 20px;
+      font-size: 2em;
+      text-align: center;
+    }
+    #response-section {
+      margin-top: 30px;
+    }
+    #response-output {
+      padding: 16px;
+      background-color: #e9ecef;
+      border-radius: 6px;
+      font-size: 1em;
+      line-height: 1.5;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <img src="logo_dark.png" alt="Visual AI Logo" />
+    <h1>Visual AI</h1>
+    <p>Bringing AI to you... Visually</p>
+  </header>
+
+  <main>
+    <section id="prompt-section">
+      <form id="prompt-form">
+        <input type="text" id="prompt-input" placeholder="Type your question..." required />
+        <button type="submit">Submit</button>
+      </form>
+
+      <div id="slider-container">
+        <label for="mode-slider">Mode:</label>
+        <input type="range" id="mode-slider" min="0" max="3" value="0" step="1" />
+        <div id="mode-labels">
+          <span>Simple</span>
+          <span>Creative</span>
+          <span>Analytical</span>
+          <span>Visual</span>
+        </div>
+      </div>
+
+      <div id="prompt-suggestions"></div>
+      <div id="sample-images"></div>
+      <div id="mood-emojis"></div>
+    </section>
+
+    <section id="response-section">
+      <div id="response-output"></div>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
