@@ -1,3 +1,4 @@
+
 document.addEventListener('DOMContentLoaded', () => {
   const promptForm = document.getElementById('prompt-form');
   const promptInput = document.getElementById('prompt-input');
@@ -34,10 +35,18 @@ document.addEventListener('DOMContentLoaded', () => {
     updateMoodEmoji(mode);
   });
 
+  promptInput.addEventListener('input', async () => {
+    const query = promptInput.value;
+    const mode = modes[modeSlider.value];
+    await updateSuggestions(mode, query);
+  });
+
   promptForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const prompt = promptInput.value;
     const mode = modes[modeSlider.value];
+
+    responseOutput.innerHTML = 'Thinking...';
 
     if (mode === 'Visual') {
       const response = await fetch('/generate-image', {
@@ -72,21 +81,47 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  function updateSuggestions(mode) {
+  async function updateSuggestions(mode, query = '') {
     promptSuggestions.innerHTML = '';
-    suggestions[mode].forEach(suggestion => {
-      const button = document.createElement('button');
-      button.textContent = suggestion;
-      button.classList.add('suggestion');
-      button.addEventListener('click', () => {
-        promptInput.value = suggestion;
+
+    if (query.trim().length === 0) return;
+
+    try {
+      const res = await fetch('/api/suggestions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: query })
       });
-      promptSuggestions.appendChild(button);
-    });
+
+      const data = await res.json();
+      const suggestions = data.suggestions || [];
+
+      suggestions.forEach(suggestion => {
+        const container = document.createElement('div');
+        container.classList.add('suggestion-container');
+
+        const text = document.createElement('span');
+        text.textContent = suggestion;
+
+        const button = document.createElement('button');
+        button.textContent = 'Use this';
+        button.classList.add('use-suggestion');
+        button.addEventListener('click', () => {
+          promptInput.value = suggestion;
+          promptForm.dispatchEvent(new Event('submit'));
+        });
+
+        container.appendChild(text);
+        container.appendChild(button);
+        promptSuggestions.appendChild(container);
+      });
+    } catch (err) {
+      console.error('Failed to fetch suggestions:', err);
+    }
   }
 
   function updateSampleImage(mode) {
-    sampleImages.innerHTML = `<img src="${images[mode]}" alt="${mode} sample image">`;
+    sampleImages.innerHTML = `<img src="${images[mode]}" alt="${mode}">`;
   }
 
   function updateMoodEmoji(mode) {
@@ -94,10 +129,18 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function displayResponse(response) {
-    responseOutput.innerHTML = response.response;
+    if (response.response.length > 300) {
+      responseOutput.innerHTML = response.response.substring(0, 300) + '... <a href="#" id="read-more">Read more</a>';
+      document.getElementById('read-more').addEventListener('click', (e) => {
+        e.preventDefault();
+        responseOutput.innerHTML = response.response;
+      });
+    } else {
+      responseOutput.innerHTML = response.response;
+    }
   }
 
-  // Initialize with default mode
+  // Initialize
   updateSuggestions(modes[0]);
   updateSampleImage(modes[0]);
   updateMoodEmoji(modes[0]);
