@@ -15,8 +15,9 @@ app.use(session({
     resave: false,
     saveUninitialized: true
 }));
+app.use(express.static('public'));
 
-// Function to generate AI response using Azure OpenAI (GPT)
+// GPT response
 async function generateAIResponse(prompt) {
     const endpoint = process.env.AZURE_OPENAI_ENDPOINT;
     const deployment = process.env.AZURE_OPENAI_DEPLOYMENT;
@@ -38,7 +39,7 @@ async function generateAIResponse(prompt) {
     return response.data.choices[0].message.content;
 }
 
-// Function to generate image using Azure OpenAI DALL·E
+// DALL·E image generation
 async function generateImage(prompt) {
     const endpoint = process.env.DALLE_OPENAI_ENDPOINT;
     const apiKey = process.env.DALLE_OPENAI_API_KEY;
@@ -61,7 +62,46 @@ async function generateImage(prompt) {
     return response.headers['operation-location'];
 }
 
-// API endpoint to handle GPT prompts
+// GPT prompt suggestions
+app.post('/api/suggestions', async (req, res) => {
+    const { prompt } = req.body;
+
+    try {
+        const endpoint = process.env.AZURE_OPENAI_ENDPOINT;
+        const deployment = process.env.AZURE_OPENAI_DEPLOYMENT;
+        const apiKey = process.env.AZURE_OPENAI_KEY;
+
+        const url = `${endpoint}/openai/deployments/${deployment}/chat/completions?api-version=2024-02-15-preview`;
+
+        const headers = {
+            'Content-Type': 'application/json',
+            'api-key': apiKey
+        };
+
+        const body = {
+            messages: [
+                { role: 'system', content: 'You are a helpful assistant that rewrites user questions into clearer, more specific prompts.' },
+                { role: 'user', content: `Rewrite the following question into 3-5 clearer prompt suggestions:\n\n"${prompt}"` }
+            ],
+            temperature: 0.7
+        };
+
+        const response = await axios.post(url, body, { headers });
+        const suggestionsText = response.data.choices[0].message.content;
+
+        const suggestions = suggestionsText
+            .split('\n')
+            .map(s => s.replace(/^[0-9\\-\\*\\.\\s]+/, '').trim())
+            .filter(s => s.length > 0);
+
+        res.json({ suggestions });
+    } catch (error) {
+        console.error('Error generating suggestions:', error.message);
+        res.status(500).json({ error: 'Failed to generate suggestions' });
+    }
+});
+
+// GPT prompt handler
 app.post('/api/prompt', async (req, res) => {
     const prompt = req.body.prompt;
     const sessionData = req.session;
@@ -83,7 +123,7 @@ app.post('/api/prompt', async (req, res) => {
     }
 });
 
-// API endpoint to handle DALL·E image generation
+// DALL·E image handler
 app.post('/generate-image', async (req, res) => {
     const { prompt } = req.body;
 
@@ -96,10 +136,6 @@ app.post('/generate-image', async (req, res) => {
     }
 });
 
-// Serve static files
-app.use(express.static('public'));
-
-// Start server
 app.listen(port, () => {
     console.log(`Server running on port ${port}`);
 });
