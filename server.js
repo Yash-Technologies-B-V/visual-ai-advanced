@@ -40,28 +40,28 @@ async function generateAIResponse(prompt) {
 
 // DALL·E image generation
 async function generateImage(prompt) {
-    const endpoint = process.env.DALLE_OPENAI_ENDPOINT;
-    const apiKey = process.env.DALLE_OPENAI_API_KEY;
-    const apiVersion = process.env.DALLE_OPENAI_API_VERSION;
+  const endpoint = process.env.DALLE_OPENAI_ENDPOINT;
+  const apiKey = process.env.DALLE_OPENAI_API_KEY;
+  const apiVersion = process.env.DALLE_OPENAI_API_VERSION;
+  const deployment = "dall-e-3"; // or use process.env.DALLE_OPENAI_DEPLOYMENT if you’ve set it
 
-    const url = `${endpoint}/openai/images/generations:submit?api-version=${apiVersion}`;
+  const url = `${endpoint}/openai/deployments/${deployment}/images/generations?api-version=${apiVersion}`;
+  const headers = {
+    'Content-Type': 'application/json',
+    'api-key': apiKey
+  };
+  const body = {
+    prompt: prompt,
+    n: 1,
+    size: "1024x1024"
+  };
 
-    const headers = {
-        'Content-Type': 'application/json',
-        'api-key': apiKey
-    };
-
-    const body = {
-        prompt: prompt,
-        n: 1,
-        size: "1024x1024"
-    };
-
-    const response = await axios.post(url, body, { headers });
-    const operationLocation = response.headers['operation-location'];
-    console.log('🛰️ Operation Location:', operationLocation);
-    return operationLocation;
+  const response = await axios.post(url, body, { headers });
+  const operationLocation = response.headers['operation-location'];
+  console.log('🚀 Operation Location:', operationLocation);
+  return operationLocation;
 }
+
 
 // Polling endpoint
 app.get('/image-status', async (req, res) => {
