@@ -119,40 +119,4 @@ app.post('/api/suggestions', async (req, res) => {
 });
 
 // Prompt handler
-app.post('/api/prompt', async (req, res) => {
-    const prompt = req.body.prompt;
-    const sessionData = req.session;
-
-    try {
-        const response = await generateAIResponse(prompt);
-
-        if (!sessionData.history) {
-            sessionData.history = [];
-        }
-        sessionData.history.push({ prompt, response });
-
-        const tokenUsage = Math.floor(Math.random() * 10) + 1;
-
-        res.json({ response, tokenUsage, history: sessionData.history });
-    } catch (error) {
-        console.error('❌ Error generating AI response:', error.message);
-        res.status(500).json({ error: 'Failed to generate AI response' });
-    }
-});
-
-// Image generation handler
-app.post('/generate-image', async (req, res) => {
-    const { prompt } = req.body;
-
-    try {
-        const operationLocation = await generateImage(prompt);
-        res.json({ operationLocation });
-    } catch (error) {
-        console.error('❌ Error generating image:', error.message);
-        res.status(500).send('Image generation failed');
-    }
-});
-
-app.listen(port, () => {
-    console.log(`🚀 Server running on port ${port}`);
-});
+app.post('/api/prompt', async 
