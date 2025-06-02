@@ -8,12 +8,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const responseOutput = document.getElementById('response-output');
 
   const modes = ['Simple', 'Creative', 'Analytical', 'Visual'];
-  const suggestions = {
-    Simple: ['Summarize this', 'Explain simply', 'Give me a quick answer'],
-    Creative: ['Generate a story', 'Write a poem', 'Give me creative ideas'],
-    Analytical: ['Analyze this data', 'Explain the logic', 'Give me a detailed answer'],
-    Visual: ['Generate an image', 'Show me a chart', 'Create a visual representation']
-  };
   const images = {
     Simple: 'simple.png',
     Creative: 'creative.png',
@@ -48,27 +42,41 @@ document.addEventListener('DOMContentLoaded', () => {
     responseOutput.innerHTML = 'Thinking...';
 
     if (mode === 'Visual') {
-      const response = await fetch('/generate-image', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt })
-      });
+      try {
+        const response = await fetch('/generate-image', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt })
+        });
 
-      const { operationLocation } = await response.json();
+        const { operationLocation } = await response.json();
+        console.log('🛰️ operationLocation:', operationLocation);
 
-      const poll = async () => {
-        const result = await fetch(`/image-status?url=${encodeURIComponent(operationLocation)}`);
-        const data = await result.json();
+        const poll = async () => {
+          try {
+            const result = await fetch(`/image-status?url=${encodeURIComponent(operationLocation)}`);
+            const data = await result.json();
+            console.log('📡 Polling result:', data);
 
-        if (data.status === 'succeeded') {
-          const imageUrl = data.result.data[0].url;
-          responseOutput.innerHTML = `<img src="${imageUrl}" alt="Generated Image" style="max-width:100%; border-radius:8px;" />`;
-        } else {
-          setTimeout(poll, 2000);
-        }
-      };
+            if (data.status === 'succeeded') {
+              const imageUrl = data.result.data[0].url;
+              responseOutput.innerHTML = `<img src="${imageUrl}" alt="Generated Image" style="max-width:100%; border-radius:8px;" />`;
+            } else if (data.status === 'failed') {
+              responseOutput.innerHTML = 'Image generation failed. Please try again.';
+            } else {
+              setTimeout(poll, 2000);
+            }
+          } catch (err) {
+            console.error('❌ Polling error:', err);
+            responseOutput.innerHTML = 'Error polling image status.';
+          }
+        };
 
-      poll();
+        poll();
+      } catch (err) {
+        console.error('❌ Image generation error:', err);
+        responseOutput.innerHTML = 'Image generation failed.';
+      }
     } else {
       const response = await fetch('/api/prompt', {
         method: 'POST',
@@ -82,7 +90,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function updateSuggestions(mode, query = '') {
     promptSuggestions.innerHTML = '';
-
     if (query.trim().length === 0) return;
 
     try {
@@ -93,9 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
 
       const data = await res.json();
-      const suggestions = data.suggestions || [];
-
-      suggestions.forEach(suggestion => {
+      (data.suggestions || []).forEach(suggestion => {
         const container = document.createElement('div');
         container.classList.add('suggestion-container');
 
@@ -115,7 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
         promptSuggestions.appendChild(container);
       });
     } catch (err) {
-      console.error('Failed to fetch suggestions:', err);
+      console.error('❌ Failed to fetch suggestions:', err);
     }
   }
 
@@ -143,7 +148,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Initialize
   updateSuggestions(modes[0]);
   updateSampleImage(modes[0]);
   updateMoodEmoji(modes[0]);
