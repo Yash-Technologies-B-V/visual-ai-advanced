@@ -149,7 +149,8 @@ app.post('/generate-image', async (req, res) => {
         res.json({ operationLocation });
     } catch (error) {
         console.error('❌ Error generating image:', error.message);
-        res.status(500).send('Image generation failed');
+        // Updated to return JSON instead of plain text
+        res.status(500).json({ error: 'Image generation failed' });
     }
 });
 
