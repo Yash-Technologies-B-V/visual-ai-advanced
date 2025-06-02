@@ -7,7 +7,6 @@ require('dotenv').config();
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Middleware
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(session({
@@ -59,10 +58,12 @@ async function generateImage(prompt) {
     };
 
     const response = await axios.post(url, body, { headers });
-    return response.headers['operation-location'];
+    const operationLocation = response.headers['operation-location'];
+    console.log('🛰️ Operation Location:', operationLocation);
+    return operationLocation;
 }
 
-// Polling endpoint for image generation status
+// Polling endpoint
 app.get('/image-status', async (req, res) => {
     const { url } = req.query;
     try {
@@ -70,14 +71,15 @@ app.get('/image-status', async (req, res) => {
             'api-key': process.env.DALLE_OPENAI_API_KEY
         };
         const response = await axios.get(url, { headers });
+        console.log('📡 Polling Response:', response.data);
         res.json(response.data);
     } catch (error) {
-        console.error('Error polling image status:', error.message);
+        console.error('❌ Error polling image status:', error.message);
         res.status(500).json({ error: 'Failed to poll image status' });
     }
 });
 
-// GPT prompt suggestions
+// Prompt suggestions
 app.post('/api/suggestions', async (req, res) => {
     const { prompt } = req.body;
 
@@ -111,12 +113,12 @@ app.post('/api/suggestions', async (req, res) => {
 
         res.json({ suggestions });
     } catch (error) {
-        console.error('Error generating suggestions:', error.message);
+        console.error('❌ Error generating suggestions:', error.message);
         res.status(500).json({ error: 'Failed to generate suggestions' });
     }
 });
 
-// GPT prompt handler
+// Prompt handler
 app.post('/api/prompt', async (req, res) => {
     const prompt = req.body.prompt;
     const sessionData = req.session;
@@ -133,12 +135,12 @@ app.post('/api/prompt', async (req, res) => {
 
         res.json({ response, tokenUsage, history: sessionData.history });
     } catch (error) {
-        console.error('Error generating AI response:', error.message);
+        console.error('❌ Error generating AI response:', error.message);
         res.status(500).json({ error: 'Failed to generate AI response' });
     }
 });
 
-// DALL·E image handler
+// Image generation handler
 app.post('/generate-image', async (req, res) => {
     const { prompt } = req.body;
 
@@ -146,12 +148,11 @@ app.post('/generate-image', async (req, res) => {
         const operationLocation = await generateImage(prompt);
         res.json({ operationLocation });
     } catch (error) {
-        console.error('Error generating image:', error.message);
+        console.error('❌ Error generating image:', error.message);
         res.status(500).send('Image generation failed');
     }
 });
 
-// Start server
 app.listen(port, () => {
-    console.log(`Server running on port ${port}`);
+    console.log(`🚀 Server running on port ${port}`);
 });
