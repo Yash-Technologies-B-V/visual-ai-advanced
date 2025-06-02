@@ -142,18 +142,20 @@ app.post('/api/prompt', async (req, res) => {
 
 // Image generation handler
 app.post('/generate-image', async (req, res) => {
-    const { prompt } = req.body;
+  const { prompt } = req.body;
 
-    try {
-        const operationLocation = await generateImage(prompt);
-        res.json({ operationLocation });
-    } catch (error) {
-        console.error('❌ Error generating image:', error.message);
-        // Updated to return JSON instead of plain text
-        res.status(500).json({ error: 'Image generation failed' });
+  try {
+    const operationLocation = await generateImage(prompt);
+    res.json({ operationLocation });
+  } catch (error) {
+    console.error('❌ Error generating image:', error.message);
+
+    // Enhanced logging for Azure response details
+    if (error.response) {
+      console.error('🔍 Azure response status:', error.response.status);
+      console.error('🔍 Azure response data:', JSON.stringify(error.response.data, null, 2));
     }
-});
 
-app.listen(port, () => {
-    console.log(`🚀 Server running on port ${port}`);
+    res.status(500).json({ error: 'Image generation failed' });
+  }
 });
