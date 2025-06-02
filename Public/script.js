@@ -49,6 +49,11 @@ document.addEventListener('DOMContentLoaded', () => {
           body: JSON.stringify({ prompt })
         });
 
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Server error: ${errorText}`);
+        }
+
         const { operationLocation } = await response.json();
         console.log('🛰️ operationLocation:', operationLocation);
 
