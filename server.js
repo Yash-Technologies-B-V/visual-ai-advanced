@@ -39,17 +39,17 @@ async function generateAIResponse(prompt) {
 }
 
 // DALL·E image generation
-// DALL·E image generation
 async function generateImage(prompt) {
   const endpoint = process.env.DALLE_OPENAI_ENDPOINT;
   const apiKey = process.env.DALLE_OPENAI_API_KEY;
   const apiVersion = process.env.DALLE_OPENAI_API_VERSION;
-  const deployment = "dall-e-3"; 
+  const deployment = "dall-e-3";
 
   const url = `${endpoint}/openai/deployments/${deployment}/images/generations?api-version=${apiVersion}`;
   const headers = {
     'Content-Type': 'application/json',
-    'api-key': apiKey
+    'api-key': apiKey,
+    'Accept': 'application/json' // Add this line
   };
   const body = {
     prompt: prompt,
@@ -59,13 +59,10 @@ async function generateImage(prompt) {
 
   const response = await axios.post(url, body, { headers });
 
-  // --- ADD THIS LINE ---
-  console.log('Full DALL-E response headers:', JSON.stringify(response.headers, null, 2));
-  console.log('Full DALL-E response data:', JSON.stringify(response.data, null, 2));
-
+  console.log('🔍 Full DALL-E Response Headers:', JSON.stringify(response.headers, null, 2));
 
   const operationLocation = response.headers['operation-location'] || response.headers['location'];
-  console.log('🚀 Operation Location after check:', operationLocation); // Changed log message
+  console.log('🚀 Operation Location:', operationLocation);
   return operationLocation;
 }
 
