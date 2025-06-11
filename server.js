@@ -57,7 +57,9 @@ async function generateImage(prompt) {
   };
 
   const response = await axios.post(url, body, { headers });
-  const operationLocation = response.headers['operation-location'];
+  // --- CHANGE THIS LINE ---
+  // Check for both 'operation-location' and 'location' headers (axios often lowercases headers)
+  const operationLocation = response.headers['operation-location'] || response.headers['location'];
   console.log('🚀 Operation Location:', operationLocation);
   return operationLocation;
 }
