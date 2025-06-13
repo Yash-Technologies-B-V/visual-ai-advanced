@@ -49,41 +49,30 @@ document.addEventListener('DOMContentLoaded', () => {
           body: JSON.stringify({ prompt })
         });
 
-        // New: check for non-OK response before parsing JSON
+        // Check for non-OK response before parsing JSON
         if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`Server error: ${errorText}`);
+          const errorData = await response.json(); // Assuming server sends JSON error
+          throw new Error(`Server error: ${errorData.error || response.statusText}`);
         }
 
-        const { operationLocation } = await response.json();
-        console.log('🛰️ operationLocation:', operationLocation);
+        // --- MODIFIED SECTION FOR VISUAL MODE ---
+        // Expecting { imageUrl: "..." } directly from the server.js /generate-image endpoint
+        const { imageUrl } = await response.json();
+        console.log('🖼️ Generated Image URL:', imageUrl);
 
-        const poll = async () => {
-          try {
-            const result = await fetch(`/image-status?url=${encodeURIComponent(operationLocation)}`);
-            const data = await result.json();
-            console.log('📡 Polling result:', data);
+        if (imageUrl) {
+          responseOutput.innerHTML = `<img src="${imageUrl}" alt="Generated Image" style="max-width:100%; border-radius:8px;" />`;
+        } else {
+          responseOutput.innerHTML = 'No image URL received from DALL-E API.';
+        }
+        // --- END OF MODIFIED SECTION ---
 
-            if (data.status === 'succeeded') {
-              const imageUrl = data.result.data[0].url;
-              responseOutput.innerHTML = `<img src="${imageUrl}" alt="Generated Image" style="max-width:100%; border-radius:8px;" />`;
-            } else if (data.status === 'failed') {
-              responseOutput.innerHTML = 'Image generation failed. Please try again.';
-            } else {
-              setTimeout(poll, 2000);
-            }
-          } catch (err) {
-            console.error('❌ Polling error:', err);
-            responseOutput.innerHTML = 'Error polling image status.';
-          }
-        };
-
-        poll();
       } catch (err) {
         console.error('❌ Image generation error:', err);
-        responseOutput.innerHTML = 'Image generation failed.';
+        responseOutput.innerHTML = `Image generation failed: ${err.message}`; // Display error message
       }
     } else {
+      // Logic for other modes (Simple, Creative, Analytical) remains unchanged
       const response = await fetch('/api/prompt', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -132,9 +121,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function updateSampleImage(mode) {
     sampleImages.innerHTML = `
-      <img src="${images[mode]}" alt="" 
-           style="max-width:100%; border-radius:8px; display:block;" 
-           onerror="this.style.display='none';" />
+      <img src="${images[mode]}" alt=""
+             style="max-width:100%; border-radius:8px; display:block;"
+             onerror="this.style.display='none';" />
     `;
   }
 
@@ -154,6 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // Initial calls when page loads
   updateSuggestions(modes[0]);
   updateSampleImage(modes[0]);
   updateMoodEmoji(modes[0]);
