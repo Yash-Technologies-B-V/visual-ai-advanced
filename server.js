@@ -19,6 +19,20 @@ const AZURE_OPENAI_KEY = process.env.AZURE_OPENAI_KEY;
 const AZURE_OPENAI_DEPLOYMENT = process.env.AZURE_OPENAI_DEPLOYMENT;
 const AZURE_OPENAI_API_VERSION = process.env.AZURE_OPENAI_API_VERSION || "2024-02-01"; // Default version for Text API
 
+// --- Global Error Handlers for Node.js Process Stability ---
+process.on('uncaughtException', err => {
+    console.error('CRITICAL: Uncaught Exception - Application is terminating:', err.message, err.stack);
+    // In a production environment, you might want a more graceful shutdown or alert system
+    // For now, logging deeply is crucial for diagnosis.
+    // process.exit(1); // Consider adding process.exit(1) to force a restart for stability
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('CRITICAL: Unhandled Rejection - Application might be unstable:', reason, 'Promise:', promise);
+    // Log the full reason to understand why promises are unhandled
+});
+
+
 // --- DALL-E Image Generation Function ---
 async function generateImage(prompt) {
     if (!DALLE_OPENAI_ENDPOINT || !DALLE_OPENAI_API_KEY || !DALLE_OPENAI_API_VERSION || !DALLE_DEPLOYMENT_NAME) {
@@ -47,30 +61,31 @@ async function generateImage(prompt) {
         const response = await axios.post(url, data, { headers });
 
         console.log(`🔍 DALL-E API response status: ${response.status}`);
+        // Log the full response data for debugging
         console.log(`🔍 DALL-E API response data: ${JSON.stringify(response.data, null, 2)}`);
 
         if (response.data && response.data.data && response.data.data.length > 0) {
             return response.data.data[0].url;
         } else {
-            throw new Error("No image URL found in DALL-E API response.");
+            throw new Error("No image URL found in DALL-E API response data.");
         }
 
     } catch (error) {
         if (error.response) {
             console.error(`❌ Error calling DALL-E image generation API: Request failed with status code ${error.response.status}`);
-            console.error(`🔍 DALL-E API response data: ${JSON.stringify(error.response.data.error || error.response.data)}`);
+            console.error(`🔍 DALL-E API detailed error: ${JSON.stringify(error.response.data.error || error.response.data, null, 2)}`);
             throw new Error(`DALL-E API error (Status: ${error.response.status}): ${JSON.stringify(error.response.data.error || error.response.data)}`);
         } else if (error.request) {
-            console.error(`❌ Error calling DALL-E image generation API: No response received from server.`);
+            console.error(`❌ Error calling DALL-E image generation API: No response received from server.`, error.request);
             throw new Error("No response received from DALL-E API.");
         } else {
-            console.error('❌ Error in DALL-E image generation API request setup:', error.message);
+            console.error('❌ Error in DALL-E image generation API request setup:', error.message, error.stack);
             throw new Error(`Error setting up DALL-E API request: ${error.message}`);
         }
     }
 }
 
-// --- Text Model Interaction Function (now uses distinct AZURE_OPENAI_ variables) ---
+// --- Text Model Interaction Function ---
 async function getChatCompletion(prompt, systemMessageContent = "You are a helpful AI assistant.") {
     if (!AZURE_OPENAI_ENDPOINT || !AZURE_OPENAI_KEY || !AZURE_OPENAI_DEPLOYMENT || !AZURE_OPENAI_API_VERSION) {
         throw new Error("Text API environment variables are not set. Ensure AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY, AZURE_OPENAI_DEPLOYMENT, and AZURE_OPENAI_API_VERSION are configured.");
@@ -96,22 +111,25 @@ async function getChatCompletion(prompt, systemMessageContent = "You are a helpf
         console.log(`Attempting to call Text API at: ${url}`);
         const response = await axios.post(url, { messages }, { headers });
         console.log(`🔍 Text API response status: ${response.status}`);
+        // Log the full response data for debugging
+        console.log(`🔍 Text API response data: ${JSON.stringify(response.data, null, 2)}`);
+
 
         if (response.data && response.data.choices && response.data.choices.length > 0) {
             return response.data.choices[0].message.content;
         } else {
-            throw new Error("No text response found in API completion.");
+            throw new Error("No text response found in API completion choices.");
         }
     } catch (error) {
         if (error.response) {
             console.error(`❌ Error calling Text completion API: Request failed with status code ${error.response.status}`);
-            console.error(`🔍 Text API response data: ${JSON.stringify(error.response.data.error || error.response.data)}`);
+            console.error(`🔍 Text API detailed error: ${JSON.stringify(error.response.data.error || error.response.data, null, 2)}`);
             throw new Error(`Text API error (Status: ${error.response.status}): ${JSON.stringify(error.response.data.error || error.response.data)}`);
         } else if (error.request) {
-            console.error(`❌ Error calling Text completion API: No response received from server.`);
+            console.error(`❌ Error calling Text completion API: No response received from server.`, error.request);
             throw new Error("No response received from Text API.");
         } else {
-            console.error('❌ Error in Text completion API request setup:', error.message);
+            console.error('❌ Error in Text completion API request setup:', error.message, error.stack);
             throw new Error(`Error setting up Text API request: ${error.message}`);
         }
     }
@@ -135,7 +153,8 @@ app.post('/generate-image', async (req, res) => {
         const imageUrl = await generateImage(prompt);
         res.json({ imageUrl: imageUrl });
     } catch (error) {
-        console.error('Error in /generate-image route:', error.message);
+        console.error('Error in /generate-image route:', error.message, error.stack);
+        // Ensure to send the error message that includes details from the API
         res.status(500).json({ error: error.message });
     }
 });
@@ -165,7 +184,8 @@ app.post('/api/prompt', async (req, res) => {
         const responseText = await getChatCompletion(prompt, systemMessage);
         res.json({ response: responseText });
     } catch (error) {
-        console.error(`Error in /api/prompt route for mode ${mode}:`, error.message);
+        console.error(`Error in /api/prompt route for mode ${mode}:`, error.message, error.stack);
+        // Ensure to send the error message that includes details from the API
         res.status(500).json({ error: error.message });
     }
 });
@@ -192,17 +212,21 @@ app.post('/api/suggestions', async (req, res) => {
         try {
             suggestions = JSON.parse(rawSuggestions);
             if (!Array.isArray(suggestions) || !suggestions.every(item => typeof item === 'string')) {
-                suggestions = [];
+                // If AI doesn't return a perfect JSON array, log a warning and treat it as a string
+                console.warn("AI did not return a perfect JSON array for suggestions. Attempting fallback.");
+                // Fallback: This might still fail if the AI response is completely garbled, but it's better than nothing.
+                suggestions = rawSuggestions.split('\n').filter(s => s.trim() !== '').map(s => s.replace(/^- /, '').trim());
+                if (suggestions.length > 5) suggestions = suggestions.slice(0, 5); // Limit to 5 suggestions
             }
         } catch (parseError) {
-            console.warn("Failed to parse AI suggestions as JSON array. Falling back to simple string split.", parseError);
+            console.warn("Failed to parse AI suggestions as JSON array. Falling back to simple string split. Parse Error:", parseError);
             suggestions = rawSuggestions.split('\n').filter(s => s.trim() !== '').map(s => s.replace(/^- /, '').trim());
-            if (suggestions.length > 5) suggestions = suggestions.slice(0, 5);
+            if (suggestions.length > 5) suggestions = suggestions.slice(0, 5); // Limit to 5 suggestions
         }
 
         res.json({ suggestions: suggestions });
     } catch (error) {
-        console.error('Error in /api/suggestions route:', error.message);
+        console.error('Error in /api/suggestions route:', error.message, error.stack);
         res.status(500).json({ error: error.message });
     }
 });
