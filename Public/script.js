@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const sampleImages = document.getElementById('sample-images');
   const moodEmojis = document.getElementById('mood-emojis');
   const responseOutput = document.getElementById('response-output');
-  const errorMessageElement = document.getElementById('error-message'); // NEW: Get the error message element
+  const errorMessageElement = document.getElementById('error-message');
 
   const modes = ['Simple', 'Creative', 'Analytical', 'Visual'];
   const images = {
@@ -24,20 +24,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Helper function to display messages and handle UI state
   function updateUIState(status, message = '') {
-      responseOutput.textContent = ''; // Clear previous response content
-      errorMessageElement.textContent = ''; // Clear previous error content
+      responseOutput.textContent = ''; // Always clear response content initially
+      errorMessageElement.textContent = ''; // Always clear error content initially
       errorMessageElement.style.display = 'none'; // Hide error by default
 
       if (status === 'thinking') {
           responseOutput.textContent = 'Thinking...';
-          // Potentially show a spinner if you have a dedicated spinner element
       } else if (status === 'error') {
-          responseOutput.textContent = ''; // Ensure thinking message is cleared
           errorMessageElement.textContent = message;
           errorMessageElement.style.display = 'block';
       } else if (status === 'success') {
-          // Response will be handled by displayResponse or image display
-          responseOutput.textContent = message; // Set response text directly for non-long responses
+          // IMPORTANT FIX: Removed `responseOutput.textContent = message;` from here.
+          // The actual response content will be set by displayResponse or the image logic directly.
           errorMessageElement.style.display = 'none';
       }
   }
@@ -53,11 +51,10 @@ document.addEventListener('DOMContentLoaded', () => {
   promptInput.addEventListener('input', async () => {
     const query = promptInput.value;
     const mode = modes[modeSlider.value];
-    // Only fetch suggestions if there's actual input
     if (query.trim().length > 0) {
       await updateSuggestions(mode, query);
     } else {
-      promptSuggestions.innerHTML = ''; // Clear suggestions if input is empty
+      promptSuggestions.innerHTML = '';
     }
   });
 
@@ -66,7 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const prompt = promptInput.value;
     const mode = modes[modeSlider.value];
 
-    updateUIState('thinking'); // Show 'Thinking...' message
+    updateUIState('thinking'); // Set UI to 'Thinking...'
 
     if (mode === 'Visual') {
       try {
@@ -76,9 +73,8 @@ document.addEventListener('DOMContentLoaded', () => {
           body: JSON.stringify({ prompt })
         });
 
-        // Check for non-OK response before parsing JSON
         if (!response.ok) {
-          const errorData = await response.json(); // Assuming server sends JSON error
+          const errorData = await response.json();
           throw new Error(`Server error: ${errorData.error || response.statusText}`);
         }
 
@@ -87,17 +83,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (imageUrl) {
           responseOutput.innerHTML = `<img src="${imageUrl}" alt="Generated Image" style="max-width:100%; border-radius:8px;" />`;
-          updateUIState('success'); // Clear error message and thinking state
+          updateUIState('success'); // Indicate success after image is displayed
         } else {
           updateUIState('error', 'No image URL received from DALL-E API.');
         }
 
       } catch (err) {
         console.error('❌ Image generation error:', err);
-        updateUIState('error', `Image generation failed: ${err.message}`); // Display error message
+        updateUIState('error', `Image generation failed: ${err.message}`);
       }
-    } else {
-      // Logic for other modes (Simple, Creative, Analytical)
+    } else { // Text-based modes (Simple, Creative, Analytical)
       try {
         const response = await fetch('/api/prompt', {
           method: 'POST',
@@ -111,20 +106,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const result = await response.json();
-        displayResponse(result); // Pass the entire result object
-        updateUIState('success'); // Clear error message and thinking state
+        displayResponse(result); // Display the actual text response
+        updateUIState('success'); // Indicate success after response is displayed
 
       } catch (err) {
         console.error(`❌ Text generation error for mode ${mode}:`, err);
-        updateUIState('error', `${err.message}`); // Display error message
+        updateUIState('error', `${err.message}`);
       }
     }
   });
 
   async function updateSuggestions(mode, query = '') {
-    promptSuggestions.innerHTML = '';
-    errorMessageElement.textContent = ''; // Clear error message for suggestions
-    errorMessageElement.style.display = 'none';
+    promptSuggestions.innerHTML = ''; // Clear existing suggestions
+    // Don't clear main error message here unless it's specifically for suggestions
+    // errorMessageElement.textContent = '';
+    // errorMessageElement.style.display = 'none';
 
     if (query.trim().length === 0) return;
 
@@ -153,7 +149,7 @@ document.addEventListener('DOMContentLoaded', () => {
         button.classList.add('use-suggestion');
         button.addEventListener('click', () => {
           promptInput.value = suggestion;
-          promptForm.dispatchEvent(new Event('submit'));
+          promptForm.dispatchEvent(new Event('submit')); // Automatically submit when suggestion is used
         });
 
         container.appendChild(text);
@@ -162,8 +158,8 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     } catch (err) {
       console.error('❌ Failed to fetch suggestions:', err);
-      // Display error only if it's not a rate limit that will auto-resolve on next try
-      if (!err.message.includes("429")) { // Avoid showing transient rate limit errors in UI
+      // Only display suggestion specific errors, not general ones
+      if (!err.message.includes("429")) { // Avoid showing 429 for suggestions too, as it's handled globally
         errorMessageElement.textContent = `Error fetching suggestions: ${err.message}`;
         errorMessageElement.style.display = 'block';
       }
@@ -183,12 +179,11 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function displayResponse(response) {
-    // Assuming response.response contains the text from the AI
     if (response.response && response.response.length > 300) {
       responseOutput.innerHTML = response.response.substring(0, 300) + '... <a href="#" id="read-more">Read more</a>';
       document.getElementById('read-more').addEventListener('click', (e) => {
         e.preventDefault();
-        responseOutput.innerHTML = response.response;
+        responseOutput.innerHTML = response.response; // Show full response
       });
     } else if (response.response) {
       responseOutput.innerHTML = response.response;
@@ -197,7 +192,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Initial calls when page loads
+  // Initial UI setup
   updateSuggestions(modes[0]);
   updateSampleImage(modes[0]);
   updateMoodEmoji(modes[0]);
