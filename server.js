@@ -13,9 +13,9 @@ const DALLE_OPENAI_API_KEY = process.env.DALLE_OPENAI_API_KEY;
 const DALLE_OPENAI_API_VERSION = process.env.DALLE_OPENAI_API_VERSION; // Still used for DALL-E
 const DALLE_DEPLOYMENT_NAME = process.env.DALLE_DEPLOYMENT_NAME;
 
-// --- NEW Environment variables for TEXT API ---
-const TEXT_OPENAI_DEPLOYMENT_NAME = process.env.TEXT_OPENAI_DEPLOYMENT_NAME; // e.g., 'gpt-35-turbo'
-const TEXT_OPENAI_API_VERSION = process.env.TEXT_OPENAI_API_VERSION || "2024-02-01"; // Or whatever version you use for text models
+// --- Environment variables for TEXT API (adjusted to match your AZURE_OPENAI_ prefix) ---
+const AZURE_OPENAI_DEPLOYMENT = process.env.AZURE_OPENAI_DEPLOYMENT; // Now uses AZURE_OPENAI_DEPLOYMENT
+const AZURE_OPENAI_API_VERSION = process.env.AZURE_OPENAI_API_VERSION || "2024-02-01"; // Now uses AZURE_OPENAI_API_VERSION
 
 // --- DALL-E Image Generation Function (already existing) ---
 async function generateImage(prompt) {
@@ -68,15 +68,16 @@ async function generateImage(prompt) {
     }
 }
 
-// --- NEW: Text Model Interaction Function ---
+// --- Text Model Interaction Function (adjusted for AZURE_OPENAI_ prefixes) ---
 async function getChatCompletion(prompt, systemMessageContent = "You are a helpful AI assistant.") {
-    if (!DALLE_OPENAI_ENDPOINT || !DALLE_OPENAI_API_KEY || !TEXT_OPENAI_DEPLOYMENT_NAME || !TEXT_OPENAI_API_VERSION) {
-        throw new Error("Text API environment variables are not set. Ensure DALLE_OPENAI_ENDPOINT, DALLE_OPENAI_API_KEY, TEXT_OPENAI_DEPLOYMENT_NAME, and TEXT_OPENAI_API_VERSION are configured.");
+    // Check using the new variable names
+    if (!DALLE_OPENAI_ENDPOINT || !DALLE_OPENAI_API_KEY || !AZURE_OPENAI_DEPLOYMENT || !AZURE_OPENAI_API_VERSION) {
+        throw new Error("Text API environment variables are not set. Ensure DALLE_OPENAI_ENDPOINT, DALLE_OPENAI_API_KEY, AZURE_OPENAI_DEPLOYMENT, and AZURE_OPENAI_API_VERSION are configured.");
     }
 
     const endpoint = DALLE_OPENAI_ENDPOINT; // Same endpoint as DALL-E
-    const apiVersion = TEXT_OPENAI_API_VERSION;
-    const deploymentName = TEXT_OPENAI_DEPLOYMENT_NAME;
+    const apiVersion = AZURE_OPENAI_API_VERSION; // Now uses AZURE_OPENAI_API_VERSION
+    const deploymentName = AZURE_OPENAI_DEPLOYMENT; // Now uses AZURE_OPENAI_DEPLOYMENT
 
     const url = `${endpoint}openai/deployments/${deploymentName}/chat/completions?api-version=${apiVersion}`;
 
@@ -142,7 +143,7 @@ app.post('/generate-image', async (req, res) => {
 });
 
 
-// --- NEW: Route for main prompt processing (Simple, Creative, Analytical modes) ---
+// --- Route for main prompt processing (Simple, Creative, Analytical modes) ---
 app.post('/api/prompt', async (req, res) => {
     const { prompt, mode } = req.body;
 
@@ -175,7 +176,7 @@ app.post('/api/prompt', async (req, res) => {
     }
 });
 
-// --- NEW: Route for prompt suggestions ---
+// --- Route for prompt suggestions ---
 app.post('/api/suggestions', async (req, res) => {
     const { prompt } = req.body;
 
