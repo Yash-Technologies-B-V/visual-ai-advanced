@@ -7,20 +7,22 @@ const port = process.env.PORT || 8080;
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public'))); // Serve static files from 'public' folder
 
-// Environment variables for DALL-E API (already existing)
+// Environment variables for DALL-E API
 const DALLE_OPENAI_ENDPOINT = process.env.DALLE_OPENAI_ENDPOINT;
 const DALLE_OPENAI_API_KEY = process.env.DALLE_OPENAI_API_KEY;
-const DALLE_OPENAI_API_VERSION = process.env.DALLE_OPENAI_API_VERSION; // Still used for DALL-E
+const DALLE_OPENAI_API_VERSION = process.env.DALLE_OPENAI_API_VERSION || "2024-02-01"; // Default version for DALL-E
 const DALLE_DEPLOYMENT_NAME = process.env.DALLE_DEPLOYMENT_NAME;
 
-// --- Environment variables for TEXT API (adjusted to match your AZURE_OPENAI_ prefix) ---
-const AZURE_OPENAI_DEPLOYMENT = process.env.AZURE_OPENAI_DEPLOYMENT; // Now uses AZURE_OPENAI_DEPLOYMENT
-const AZURE_OPENAI_API_VERSION = process.env.AZURE_OPENAI_API_VERSION || "2024-02-01"; // Now uses AZURE_OPENAI_API_VERSION
+// Environment variables for TEXT API (using AZURE_OPENAI_ prefix)
+const AZURE_OPENAI_ENDPOINT = process.env.AZURE_OPENAI_ENDPOINT;
+const AZURE_OPENAI_KEY = process.env.AZURE_OPENAI_KEY;
+const AZURE_OPENAI_DEPLOYMENT = process.env.AZURE_OPENAI_DEPLOYMENT;
+const AZURE_OPENAI_API_VERSION = process.env.AZURE_OPENAI_API_VERSION || "2024-02-01"; // Default version for Text API
 
-// --- DALL-E Image Generation Function (already existing) ---
+// --- DALL-E Image Generation Function ---
 async function generateImage(prompt) {
     if (!DALLE_OPENAI_ENDPOINT || !DALLE_OPENAI_API_KEY || !DALLE_OPENAI_API_VERSION || !DALLE_DEPLOYMENT_NAME) {
-        throw new Error("DALL-E API environment variables are not set.");
+        throw new Error("DALL-E API environment variables are not set. Ensure DALLE_OPENAI_ENDPOINT, DALLE_OPENAI_API_KEY, DALLE_OPENAI_API_VERSION, and DALLE_DEPLOYMENT_NAME are configured.");
     }
 
     const endpoint = DALLE_OPENAI_ENDPOINT;
@@ -68,21 +70,20 @@ async function generateImage(prompt) {
     }
 }
 
-// --- Text Model Interaction Function (adjusted for AZURE_OPENAI_ prefixes) ---
+// --- Text Model Interaction Function (now uses distinct AZURE_OPENAI_ variables) ---
 async function getChatCompletion(prompt, systemMessageContent = "You are a helpful AI assistant.") {
-    // Check using the new variable names
-    if (!DALLE_OPENAI_ENDPOINT || !DALLE_OPENAI_API_KEY || !AZURE_OPENAI_DEPLOYMENT || !AZURE_OPENAI_API_VERSION) {
-        throw new Error("Text API environment variables are not set. Ensure DALLE_OPENAI_ENDPOINT, DALLE_OPENAI_API_KEY, AZURE_OPENAI_DEPLOYMENT, and AZURE_OPENAI_API_VERSION are configured.");
+    if (!AZURE_OPENAI_ENDPOINT || !AZURE_OPENAI_KEY || !AZURE_OPENAI_DEPLOYMENT || !AZURE_OPENAI_API_VERSION) {
+        throw new Error("Text API environment variables are not set. Ensure AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY, AZURE_OPENAI_DEPLOYMENT, and AZURE_OPENAI_API_VERSION are configured.");
     }
 
-    const endpoint = DALLE_OPENAI_ENDPOINT; // Same endpoint as DALL-E
-    const apiVersion = AZURE_OPENAI_API_VERSION; // Now uses AZURE_OPENAI_API_VERSION
-    const deploymentName = AZURE_OPENAI_DEPLOYMENT; // Now uses AZURE_OPENAI_DEPLOYMENT
+    const endpoint = AZURE_OPENAI_ENDPOINT;
+    const apiVersion = AZURE_OPENAI_API_VERSION;
+    const deploymentName = AZURE_OPENAI_DEPLOYMENT;
 
     const url = `${endpoint}openai/deployments/${deploymentName}/chat/completions?api-version=${apiVersion}`;
 
     const headers = {
-        'api-key': DALLE_OPENAI_API_KEY, // Same API Key as DALL-E
+        'api-key': AZURE_OPENAI_KEY,
         'Content-Type': 'application/json',
     };
 
@@ -95,7 +96,6 @@ async function getChatCompletion(prompt, systemMessageContent = "You are a helpf
         console.log(`Attempting to call Text API at: ${url}`);
         const response = await axios.post(url, { messages }, { headers });
         console.log(`🔍 Text API response status: ${response.status}`);
-        // console.log(`🔍 Text API response data: ${JSON.stringify(response.data, null, 2)}`);
 
         if (response.data && response.data.choices && response.data.choices.length > 0) {
             return response.data.choices[0].message.content;
@@ -120,12 +120,10 @@ async function getChatCompletion(prompt, systemMessageContent = "You are a helpf
 
 // --- API Routes ---
 
-// Route to serve the main HTML page (already existing)
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Route to handle image generation requests (already existing)
 app.post('/generate-image', async (req, res) => {
     const { prompt } = req.body;
 
@@ -142,8 +140,6 @@ app.post('/generate-image', async (req, res) => {
     }
 });
 
-
-// --- Route for main prompt processing (Simple, Creative, Analytical modes) ---
 app.post('/api/prompt', async (req, res) => {
     const { prompt, mode } = req.body;
 
@@ -151,9 +147,8 @@ app.post('/api/prompt', async (req, res) => {
         return res.status(400).json({ error: 'Prompt is required.' });
     }
 
-    let systemMessage = "You are a helpful AI assistant."; // Default system message
+    let systemMessage = "You are a helpful AI assistant.";
 
-    // Adjust system message or prompt based on mode
     switch (mode) {
         case 'Simple':
             systemMessage = "You are a concise and straightforward AI assistant. Provide direct answers without excessive detail.";
@@ -164,7 +159,6 @@ app.post('/api/prompt', async (req, res) => {
         case 'Analytical':
             systemMessage = "You are a highly analytical and logical AI assistant. Break down complex problems, offer structured explanations, and focus on factual accuracy.";
             break;
-        // Visual mode handled by /generate-image
     }
 
     try {
@@ -176,7 +170,6 @@ app.post('/api/prompt', async (req, res) => {
     }
 });
 
-// --- Route for prompt suggestions ---
 app.post('/api/suggestions', async (req, res) => {
     const { prompt } = req.body;
 
@@ -189,7 +182,6 @@ app.post('/api/suggestions', async (req, res) => {
     User: "Tell me about cars"
     Assistant: ["History of electric cars", "Future of autonomous vehicles", "Impact of cars on environment"]`;
 
-    // The user's input "prompt" is the base for generating suggestions
     const suggestionPrompt = `Generate 3-5 distinct prompt ideas or questions related to: "${prompt}"`;
 
     try {
@@ -198,17 +190,13 @@ app.post('/api/suggestions', async (req, res) => {
 
         let suggestions = [];
         try {
-            // Attempt to parse the raw string as JSON
             suggestions = JSON.parse(rawSuggestions);
-            // Ensure it's an array of strings, otherwise default to empty array
             if (!Array.isArray(suggestions) || !suggestions.every(item => typeof item === 'string')) {
                 suggestions = [];
             }
         } catch (parseError) {
             console.warn("Failed to parse AI suggestions as JSON array. Falling back to simple string split.", parseError);
-            // Fallback: if parsing fails, try splitting by common delimiters
             suggestions = rawSuggestions.split('\n').filter(s => s.trim() !== '').map(s => s.replace(/^- /, '').trim());
-            // Limit to a reasonable number
             if (suggestions.length > 5) suggestions = suggestions.slice(0, 5);
         }
 
